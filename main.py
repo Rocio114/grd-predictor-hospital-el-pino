@@ -26,6 +26,23 @@ def main():
     df = clean_data(df)
     df = filter_ultra_rare_classes(df)
     df = group_rare_classes(df)
+    
+    # guardar distribución de clases
+    os.makedirs("reports", exist_ok=True)
+
+    class_dist = (
+        df['GRD_grouped']
+        .value_counts()
+        .reset_index()
+    )
+
+    class_dist.columns = ['GRD', 'Count']
+
+    class_dist.to_csv(
+        "reports/class_distribution.csv",
+        index=False,
+        encoding="utf-8-sig"
+    )
 
     features = get_feature_columns(df)
 
@@ -37,7 +54,7 @@ def main():
         if X[col].dtype == 'object'
     ]
 
-    X_train, X_test, y_train, y_test = split_data(X, y)
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)
 
     model_path = "models/final_grd_model.cbm"
 
@@ -56,6 +73,8 @@ def main():
         model = train_model(
             X_train,
             y_train,
+            X_val,
+            y_val,
             cat_features
         )
 

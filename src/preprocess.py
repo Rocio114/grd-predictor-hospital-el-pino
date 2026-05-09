@@ -77,6 +77,8 @@ def filter_ultra_rare_classes(df, min_samples=15):
 
 def group_rare_classes(df, min_samples=40):
 
+    df = df.copy()
+
     counts = df['GRD'].value_counts()
 
     rare = counts[
@@ -114,10 +116,6 @@ def get_feature_columns(df):
         c for c in features
         if c in df.columns
     ]
-
-    print("\nCOLUMNAS USADAS POR EL MODELO:")
-    for col in selected:
-        print(col)
 
     return selected
     

@@ -1,23 +1,93 @@
 # GRD Predictor Hospital El Pino
 
-Machine Learning project for predicting Diagnosis Related Groups (GRD) using patient records.
+Machine Learning project focused on predicting Diagnosis Related Groups (GRD) using clinical patient records from Hospital El Pino.
 
-## Dataset
+---
 
-Hospital El Pino dataset containing:
+## Project Structure
+
+```bash
+grd-predictor-hospital-el-pino/
+│
+├── data/
+│   └── dataset_elpino.csv
+│
+├── models/
+│   └── final_grd_model.cbm
+│
+├── src/
+│   ├── preprocess.py
+│   ├── train_model.py
+│   └── evaluate_model.py
+│
+├── main.py
+├── requirements.txt
+├── README.md
+└── .gitignore
+```
+
+---
+
+## Features Used
+
+The model uses:
 
 - Age
 - Sex
-- Diagnoses
-- Procedures
-- GRD target label
+- Diagnostic codes
+- Procedure codes
+
+---
 
 ## Model
 
-CatBoostClassifier
+Algorithm used:
+
+- CatBoostClassifier
+
+Configuration:
+
+- 150 iterations
+- depth = 6
+- learning_rate = 0.1
+
+---
+
+## Installation
+
+Clone repository:
+
+```bash
+git clone <repository-url>
+cd grd-predictor-hospital-el-pino
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
 
 ## Run Project
 
 ```bash
-pip install -r requirements.txt
 python main.py
+```
+
+---
+
+## Output
+
+The trained model will be saved in:
+
+```bash
+models/final_grd_model.cbm
+```
+
+---
+
+## Authors
+
+- Rocío

@@ -48,6 +48,12 @@ def evaluate(
         preds,
         average='weighted'
     )
+    
+    f1_macro = f1_score(
+        y_test,
+        preds,
+        average='macro'
+    )
 
     report = classification_report(
         y_test,
@@ -64,6 +70,7 @@ def evaluate(
     print(f"\nRESULTS - {model_name.upper()}")
     print("Accuracy:", round(acc, 4))
     print("Weighted F1:", round(f1, 4))
+    print("Macro F1:", round(f1_macro, 4))
 
     # GUARDAR MÉTRICAS
 
@@ -75,6 +82,7 @@ def evaluate(
 
         f.write(f"Accuracy: {acc}\n")
         f.write(f"Weighted F1: {f1}\n")
+        f.write(f"Macro F1: {f1_macro}\n")
 
     report_df.to_csv(
         f"{output_dir}/classification_report.csv",
@@ -242,4 +250,4 @@ def evaluate(
 
     plt.close()
 
-    return acc, f1
+    return acc, f1, f1_macro

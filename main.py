@@ -161,17 +161,20 @@ def main():
         {
             "Model": "CatBoost",
             "Accuracy": cat_results[0],
-            "Weighted_F1": cat_results[1]
+            "Weighted_F1": cat_results[1],
+            "Macro_F1": cat_results[2]
         },
         {
             "Model": "DecisionTree",
             "Accuracy": dt_results[0],
-            "Weighted_F1": dt_results[1]
+            "Weighted_F1": dt_results[1],
+            "Macro_F1": dt_results[2]
         },
         {
             "Model": "RandomForest",
             "Accuracy": rf_results[0],
-            "Weighted_F1": rf_results[1]
+            "Weighted_F1": rf_results[1],
+            "Macro_F1": rf_results[2]
         }
     ])
 
@@ -187,7 +190,7 @@ def main():
     print(comparison_df)
     
     best_model_name = comparison_df.loc[
-        comparison_df["Weighted_F1"].idxmax(),
+        comparison_df["Macro_F1"].idxmax(),
         "Model"
     ]
 

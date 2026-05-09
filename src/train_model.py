@@ -1,9 +1,14 @@
 from catboost import CatBoostClassifier
 from sklearn.model_selection import train_test_split
 
+
 def split_data(X, y):
 
-    return train_test_split(
+    # 80% train
+    # 10% validation
+    # 10% test
+
+    X_train, X_temp, y_train, y_temp = train_test_split(
         X,
         y,
         test_size=0.2,
@@ -11,7 +16,31 @@ def split_data(X, y):
         stratify=y
     )
 
-def train_model(X_train, y_train, cat_features):
+    X_valid, X_test, y_valid, y_test = train_test_split(
+        X_temp,
+        y_temp,
+        test_size=0.5,
+        random_state=42,
+        stratify=y_temp
+    )
+
+    return (
+        X_train,
+        X_valid,
+        X_test,
+        y_train,
+        y_valid,
+        y_test
+    )
+
+
+def train_model(
+    X_train,
+    y_train,
+    X_valid,
+    y_valid,
+    cat_features
+):
 
     model = CatBoostClassifier(
         iterations=80,
@@ -27,7 +56,8 @@ def train_model(X_train, y_train, cat_features):
     model.fit(
         X_train,
         y_train,
-        cat_features=cat_features
+        cat_features=cat_features,
+        eval_set=(X_valid, y_valid)
     )
 
     return model

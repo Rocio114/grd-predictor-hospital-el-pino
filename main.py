@@ -5,6 +5,7 @@ from catboost import CatBoostClassifier
 from src.preprocess import (
     load_data,
     clean_data,
+    filter_ultra_rare_classes,
     group_rare_classes,
     get_feature_columns
 )
@@ -23,6 +24,7 @@ def main():
 
     df = load_data(path)
     df = clean_data(df)
+    df = filter_ultra_rare_classes(df)
     df = group_rare_classes(df)
 
     features = get_feature_columns(df)

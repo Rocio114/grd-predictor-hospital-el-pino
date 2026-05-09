@@ -112,14 +112,6 @@ def main():
         cat_features
     )
 
-    os.makedirs("models", exist_ok=True)
-
-    cat_model.save_model(
-        "models/final_grd_model.cbm"
-    )
-
-    print("\nCATBOOST MODEL SAVED.")
-
     cat_results = evaluate(
         cat_model,
         X_test,
@@ -193,6 +185,32 @@ def main():
     print("MODEL COMPARISON")
     print("========================")
     print(comparison_df)
+    
+    best_model_name = comparison_df.loc[
+        comparison_df["Weighted_F1"].idxmax(),
+        "Model"
+    ]
+
+    print("\n========================")
+    print(f"BEST MODEL: {best_model_name}")
+    print("========================")
+
+    if best_model_name == "CatBoost":
+        best_model = cat_model
+
+    elif best_model_name == "DecisionTree":
+        best_model = dt_model
+
+    elif best_model_name == "RandomForest":
+        best_model = rf_model
+
+    os.makedirs("models", exist_ok=True)
+
+    if best_model_name == "CatBoost":
+        best_model.save_model("models/best_model.cbm")
+    else:
+        import joblib
+        joblib.dump(best_model, "models/best_model.pkl")
 
 
 if __name__ == "__main__":

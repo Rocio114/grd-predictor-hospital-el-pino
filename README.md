@@ -13,12 +13,21 @@ grd-predictor-hospital-el-pino/
 │   └── dataset_elpino.csv
 │
 ├── models/
-│   └── final_grd_model.cbm
+│   └── best_model.cbm
+│
+├── reports/
+│   ├── catboost/
+│   ├── decision_tree/
+│   ├── random_forest/
+│   ├── class_distribution.csv
+│   └── model_comparison.csv
 │
 ├── src/
 │   ├── preprocess.py
 │   ├── train_model.py
 │   └── evaluate_model.py
+│
+├── catboost_info/
 │
 ├── main.py
 ├── requirements.txt
@@ -28,28 +37,61 @@ grd-predictor-hospital-el-pino/
 
 ---
 
-## Features Used
+##Features Used
 
-The model uses:
+The model uses structured clinical and administrative data:
 
-- Age
-- Sex
-- Diagnostic codes
-- Procedure codes
+Age
+Sex
+Diagnostic codes
+Procedure codes
 
 ---
 
-## Model
+## Machine Learning Models
 
-Algorithm used:
+The project evaluates three models:
 
-- CatBoostClassifier
+CatBoostClassifier
+Decision Tree
+Random Forest
 
-Configuration:
+Each model is trained and evaluated independently.
 
-- 150 iterations
-- depth = 6
-- learning_rate = 0.1
+---
+
+# Model Selection Strategy
+
+The final model is selected automatically based on:
+
+Weighted F1-score
+
+The model with the best performance is saved as the final model.
+
+---
+
+# CatBoost Configuration
+Iterations: 80
+Depth: 8
+Learning rate: 0.15
+Loss function: MultiClass
+Evaluation metric: TotalF1
+
+---
+
+# Outputs Generated
+ Reports
+reports/class_distribution.csv
+reports/model_comparison.csv
+Model-specific evaluation folders:
+reports/catboost/
+reports/decision_tree/
+reports/random_forest/
+
+---
+
+# Final Model
+models/best_model.cbm (CatBoost selected as best model in current run)
 
 ---
 
@@ -77,17 +119,3 @@ python main.py
 ```
 
 ---
-
-## Output
-
-The trained model will be saved in:
-
-```bash
-models/final_grd_model.cbm
-```
-
----
-
-## Authors
-
-- Rocío

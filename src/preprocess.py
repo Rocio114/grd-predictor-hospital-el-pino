@@ -1,18 +1,18 @@
 import pandas as pd
 
 def load_data(path):
-    df = pd.read_csv(path, sep=';')
+    df = pd.read_csv(path, sep=';', low_memory=False)
     return df
 
 def clean_data(df):
     df = df.replace('-', '')
 
-    # edad numérica
-    df['Edad en años'] = pd.to_numeric(df['Edad en años'], errors='coerce')
-    df['Edad en años'] = df['Edad en años'].fillna(df['Edad en años'].median())
+    if 'Edad en años' in df.columns:
+        df['Edad en años'] = pd.to_numeric(df['Edad en años'], errors='coerce')
+        df['Edad en años'] = df['Edad en años'].fillna(df['Edad en años'].median())
 
-    # sexo texto
-    df['Sexo (Desc)'] = df['Sexo (Desc)'].fillna('Unknown')
+    if 'Sexo (Desc)' in df.columns:
+        df['Sexo (Desc)'] = df['Sexo (Desc)'].fillna('Unknown')
 
     return df
 
@@ -25,10 +25,10 @@ def group_rare_classes(df, min_samples=10):
 def get_feature_columns(df):
     features = ['Edad en años', 'Sexo (Desc)']
 
-    diag_cols = [c for c in df.columns if 'Diag' in c]
-    proc_cols = [c for c in df.columns if 'Proced' in c]
+    diag_cols = [c for c in df.columns if 'Diag' in c][:5]
+    proc_cols = [c for c in df.columns if 'Proced' in c][:5]
 
     features.extend(diag_cols)
     features.extend(proc_cols)
 
-    return features
+    return [c for c in features if c in df.columns]

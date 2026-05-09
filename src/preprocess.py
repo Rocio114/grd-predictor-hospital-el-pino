@@ -50,6 +50,13 @@ def clean_data(df):
             ]
         )
 
+        df['Grupo_Edad'] = (
+            df['Grupo_Edad']
+            .cat.add_categories(['UNKNOWN'])
+            .fillna('UNKNOWN')
+            .astype(str)
+        )
+
     # sexo
     if 'Sexo (Desc)' in df.columns:
 

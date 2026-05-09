@@ -30,6 +30,12 @@ def evaluate(
 
     preds = model.predict(X_test)
 
+    preds = pd.Series(
+        preds.reshape(-1)
+    ).astype(str)
+    
+    y_test = y_test.astype(str)
+
     # flatten por si viene shape rara
     preds = pd.Series(preds).astype(str)
 

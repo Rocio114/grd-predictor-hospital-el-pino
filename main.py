@@ -1,5 +1,7 @@
 import os
 
+import pandas as pd
+
 from catboost import CatBoostClassifier
 
 from src.preprocess import (
@@ -12,7 +14,9 @@ from src.preprocess import (
 
 from src.train_model import (
     split_data,
-    train_model
+    train_model,
+    train_decision_tree,
+    train_random_forest
 )
 
 from src.evaluate_model import evaluate
@@ -22,12 +26,15 @@ def main():
 
     path = "data/dataset_elpino.csv"
 
+    # CARGA Y PREPROCESAMIENTO
+
     df = load_data(path)
     df = clean_data(df)
     df = filter_ultra_rare_classes(df)
     df = group_rare_classes(df)
-    
-    # guardar distribución de clases
+
+    # REPORTES INICIALES
+
     os.makedirs("reports", exist_ok=True)
 
     class_dist = (
@@ -44,47 +51,148 @@ def main():
         encoding="utf-8-sig"
     )
 
+    # FEATURES Y TARGET
+
     features = get_feature_columns(df)
 
     X = df[features]
     y = df["GRD_grouped"]
+
+    # VERSION ENCODEADA
+    # PARA SKLEARN
+
+    X_encoded = X.copy()
+
+    for col in X_encoded.columns:
+
+        if X_encoded[col].dtype.name in ['object', 'category']:
+
+            X_encoded[col] = (
+                X_encoded[col]
+                .astype(str)
+                .fillna("UNKNOWN")
+                .astype('category')
+                .cat.codes
+            )
+
+    # VARIABLES CATEGÓRICAS
+    # CATBOOST
 
     cat_features = [
         i for i, col in enumerate(X.columns)
         if X[col].dtype.name in ['object', 'category']
     ]
 
+    # SPLIT CATBOOST
+
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)
 
-    model_path = "models/final_grd_model.cbm"
+    # SPLIT SKLEARN
 
-    # cargar modelo si ya existe
-    if os.path.exists(model_path):
+    (
+        X_train_enc,
+        X_val_enc,
+        X_test_enc,
+        y_train_enc,
+        y_val_enc,
+        y_test_enc
+    ) = split_data(X_encoded, y)
 
-        print("\nLoading existing model...")
+    # 1. CATBOOST
 
-        model = CatBoostClassifier()
-        model.load_model(model_path)
+    print("\n========================")
+    print("TRAINING CATBOOST")
+    print("========================")
 
-    else:
+    cat_model = train_model(
+        X_train,
+        y_train,
+        X_val,
+        y_val,
+        cat_features
+    )
 
-        print("\nTraining new model...")
+    os.makedirs("models", exist_ok=True)
 
-        model = train_model(
-            X_train,
-            y_train,
-            X_val,
-            y_val,
-            cat_features
-        )
+    cat_model.save_model(
+        "models/final_grd_model.cbm"
+    )
 
-        os.makedirs("models", exist_ok=True)
+    print("\nCATBOOST MODEL SAVED.")
 
-        model.save_model(model_path)
+    cat_results = evaluate(
+        cat_model,
+        X_test,
+        y_test,
+        model_name="catboost"
+    )
 
-        print("\nModel saved.")
+    # 2. DECISION TREE
 
-    evaluate(model, X_test, y_test)
+    print("\n========================")
+    print("TRAINING DECISION TREE")
+    print("========================")
+
+    dt_model = train_decision_tree(
+        X_train_enc,
+        y_train_enc
+    )
+
+    dt_results = evaluate(
+        dt_model,
+        X_test_enc,
+        y_test_enc,
+        model_name="decision_tree"
+    )
+
+    # 3. RANDOM FOREST
+
+    print("\n========================")
+    print("TRAINING RANDOM FOREST")
+    print("========================")
+
+    rf_model = train_random_forest(
+        X_train_enc,
+        y_train_enc
+    )
+
+    rf_results = evaluate(
+        rf_model,
+        X_test_enc,
+        y_test_enc,
+        model_name="random_forest"
+    )
+
+    # COMPARACIÓN FINAL
+
+    comparison_df = pd.DataFrame([
+        {
+            "Model": "CatBoost",
+            "Accuracy": cat_results[0],
+            "Weighted_F1": cat_results[1]
+        },
+        {
+            "Model": "DecisionTree",
+            "Accuracy": dt_results[0],
+            "Weighted_F1": dt_results[1]
+        },
+        {
+            "Model": "RandomForest",
+            "Accuracy": rf_results[0],
+            "Weighted_F1": rf_results[1]
+        }
+    ])
+
+    comparison_df.to_csv(
+        "reports/model_comparison.csv",
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    print("\n========================")
+    print("MODEL COMPARISON")
+    print("========================")
+    print(comparison_df)
 
 
 if __name__ == "__main__":

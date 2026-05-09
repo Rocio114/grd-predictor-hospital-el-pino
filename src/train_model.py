@@ -1,5 +1,7 @@
 from catboost import CatBoostClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 
 def split_data(X, y):
@@ -59,5 +61,29 @@ def train_model(
         cat_features=cat_features,
         eval_set=(X_valid, y_valid)
     )
+
+    return model
+
+def train_decision_tree(X_train, y_train):
+
+    model = DecisionTreeClassifier(
+        max_depth=10,
+        random_state=42
+    )
+
+    model.fit(X_train, y_train)
+
+    return model
+
+def train_random_forest(X_train, y_train):
+
+    model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=10,
+        random_state=42,
+        n_jobs=-1
+    )
+
+    model.fit(X_train, y_train)
 
     return model

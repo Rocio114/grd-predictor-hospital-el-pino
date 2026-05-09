@@ -13,12 +13,28 @@ from sklearn.metrics import (
 )
 
 
-def evaluate(model, X_test, y_test):
+def evaluate(
+    model,
+    X_test,
+    y_test,
+    model_name="model"
+):
 
-    # predicciones
+    # CREAR CARPETA DEL MODELO
+
+    output_dir = f"reports/{model_name}"
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    # PREDICCIONES
+
     preds = model.predict(X_test)
 
-    # métricas principales
+    # flatten por si viene shape rara
+    preds = pd.Series(preds).astype(str)
+
+    # MÉTRICAS
+
     acc = accuracy_score(y_test, preds)
 
     f1 = f1_score(
@@ -27,7 +43,6 @@ def evaluate(model, X_test, y_test):
         average='weighted'
     )
 
-    # classification report como diccionario
     report = classification_report(
         y_test,
         preds,
@@ -35,25 +50,19 @@ def evaluate(model, X_test, y_test):
         output_dict=True
     )
 
-    # dataframe del reporte
     report_df = (
         pd.DataFrame(report)
         .transpose()
     )
 
-    print("\nRESULTS")
+    print(f"\nRESULTS - {model_name.upper()}")
     print("Accuracy:", round(acc, 4))
     print("Weighted F1:", round(f1, 4))
 
-    print("\nClassification Report:")
-    print(report_df.round(2))
+    # GUARDAR MÉTRICAS
 
-    # crear carpeta
-    os.makedirs("reports", exist_ok=True)
-
-    # guardar métricas
     with open(
-        "reports/metrics.txt",
+        f"{output_dir}/metrics.txt",
         "w",
         encoding="utf-8"
     ) as f:
@@ -61,23 +70,20 @@ def evaluate(model, X_test, y_test):
         f.write(f"Accuracy: {acc}\n")
         f.write(f"Weighted F1: {f1}\n")
 
-    # guardar classification report CSV
     report_df.to_csv(
-        "reports/classification_report.csv",
+        f"{output_dir}/classification_report.csv",
         encoding="utf-8-sig"
     )
 
-    # MATRIZ DE CONFUSIÓN MEJORADA
+    # MATRIZ CONFUSIÓN
 
     top_n = 20
 
-    # clases más frecuentes
     most_common = [
         x[0]
         for x in Counter(y_test).most_common(top_n)
     ]
 
-    # filtrar top clases
     indices = [
         i
         for i, y in enumerate(y_test)
@@ -90,11 +96,10 @@ def evaluate(model, X_test, y_test):
     ]
 
     y_pred_filtered = [
-        preds[i]
+        preds.iloc[i]
         for i in indices
     ]
 
-    # matriz normalizada
     cm = confusion_matrix(
         y_true_filtered,
         y_pred_filtered,
@@ -102,7 +107,6 @@ def evaluate(model, X_test, y_test):
         normalize='true'
     )
 
-    # guardar matriz como CSV
     cm_df = pd.DataFrame(
         cm,
         index=most_common,
@@ -110,11 +114,10 @@ def evaluate(model, X_test, y_test):
     )
 
     cm_df.to_csv(
-        "reports/confusion_matrix.csv",
+        f"{output_dir}/confusion_matrix.csv",
         encoding="utf-8-sig"
     )
 
-    # gráfico matriz
     plt.figure(figsize=(18, 14))
 
     sns.heatmap(
@@ -127,69 +130,76 @@ def evaluate(model, X_test, y_test):
     )
 
     plt.title(
-        "Normalized Confusion Matrix - Top 20 Classes"
+        f"Confusion Matrix - {model_name}"
     )
 
     plt.xlabel("Predicted")
     plt.ylabel("Real")
 
-    plt.xticks(
-        rotation=90,
-        fontsize=8
-    )
-
-    plt.yticks(
-        rotation=0,
-        fontsize=8
-    )
+    plt.xticks(rotation=90, fontsize=8)
+    plt.yticks(rotation=0, fontsize=8)
 
     plt.tight_layout()
 
     plt.savefig(
-        "reports/confusion_matrix_top20_normalized.png"
+        f"{output_dir}/confusion_matrix.png"
     )
 
     plt.close()
 
     # FEATURE IMPORTANCE
 
-    feature_importance = pd.DataFrame({
-        "Feature": X_test.columns,
-        "Importance": model.get_feature_importance()
-    })
+    if hasattr(model, "get_feature_importance"):
 
-    feature_importance = feature_importance.sort_values(
-        by="Importance",
-        ascending=False
-    )
+        importances = model.get_feature_importance()
 
-    # guardar CSV
-    feature_importance.to_csv(
-        "reports/feature_importance.csv",
-        index=False,
-        encoding="utf-8-sig"
-    )
+    elif hasattr(model, "feature_importances_"):
 
-    # gráfico top 15
-    plt.figure(figsize=(12, 8))
+        importances = model.feature_importances_
 
-    sns.barplot(
-        data=feature_importance.head(15),
-        x="Importance",
-        y="Feature"
-    )
+    else:
 
-    plt.title("Top 15 Feature Importance")
+        importances = None
 
-    plt.tight_layout()
+    if importances is not None:
 
-    plt.savefig(
-        "reports/top_features.png"
-    )
+        feature_importance = pd.DataFrame({
+            "Feature": X_test.columns,
+            "Importance": importances
+        })
 
-    plt.close()
+        feature_importance = feature_importance.sort_values(
+            by="Importance",
+            ascending=False
+        )
 
-    # TOP CLASES POR F1
+        feature_importance.to_csv(
+            f"{output_dir}/feature_importance.csv",
+            index=False,
+            encoding="utf-8-sig"
+        )
+
+        plt.figure(figsize=(12, 8))
+
+        sns.barplot(
+            data=feature_importance.head(15),
+            x="Importance",
+            y="Feature"
+        )
+
+        plt.title(
+            f"Top Features - {model_name}"
+        )
+
+        plt.tight_layout()
+
+        plt.savefig(
+            f"{output_dir}/top_features.png"
+        )
+
+        plt.close()
+
+    # TOP F1 CLASSES
 
     metrics_only = report_df.drop(
         ['accuracy', 'macro avg', 'weighted avg'],
@@ -201,13 +211,11 @@ def evaluate(model, X_test, y_test):
         ascending=False
     )
 
-    # guardar top métricas
     metrics_only.to_csv(
-        "reports/class_metrics_sorted.csv",
+        f"{output_dir}/class_metrics_sorted.csv",
         encoding="utf-8-sig"
     )
 
-    # gráfico top 15 F1
     plt.figure(figsize=(12, 10))
 
     sns.barplot(
@@ -216,12 +224,14 @@ def evaluate(model, X_test, y_test):
         y=metrics_only.head(15).index
     )
 
-    plt.title("Top 15 Classes by F1 Score")
+    plt.title(
+        f"Top F1 Classes - {model_name}"
+    )
 
     plt.tight_layout()
 
     plt.savefig(
-        "reports/top_f1_classes.png"
+        f"{output_dir}/top_f1_classes.png"
     )
 
     plt.close()

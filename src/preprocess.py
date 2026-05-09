@@ -15,12 +15,15 @@ def load_data(path):
 def clean_data(df):
 
     # reemplazar guiones vacíos
-    df = df.replace('-', '')
+    df = df.replace('-', 'UNKNOWN')
+    df = df.replace('', 'UNKNOWN')
 
     # limpiar columnas de texto
     for col in df.select_dtypes(include='object').columns:
+
         df[col] = (
             df[col]
+            .fillna('UNKNOWN')
             .astype(str)
             .str.strip()
             .str.upper()
@@ -41,7 +44,7 @@ def clean_data(df):
         # crear grupo etario
         df['Grupo_Edad'] = pd.cut(
             df['Edad en años'],
-            bins=[0, 18, 40, 65, 120],
+            bins=[-1, 18, 40, 65, 120],
             labels=[
                 'NIÑO',
                 'ADULTO_JOVEN',
@@ -125,6 +128,4 @@ def get_feature_columns(df):
     ]
 
     return selected
-    
-    
     

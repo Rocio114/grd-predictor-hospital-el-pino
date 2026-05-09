@@ -105,6 +105,14 @@ def group_rare_classes(df, min_samples=80):
         lambda x: x if x not in rare_families else 'OTHER'
     )
 
+    # MAPA LEGIBLE
+    label_map = (
+        df[['GRD_family', 'GRD']]
+        .drop_duplicates()
+        .set_index('GRD_family')['GRD']
+        .to_dict()
+    )
+
     return df
 
 

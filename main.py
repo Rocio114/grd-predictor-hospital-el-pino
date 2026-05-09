@@ -1,8 +1,6 @@
 import os
-
+import json
 import pandas as pd
-
-from catboost import CatBoostClassifier
 
 from src.preprocess import (
     load_data,
@@ -31,11 +29,17 @@ def main():
     df = load_data(path)
     df = clean_data(df)
     df = filter_ultra_rare_classes(df)
-    df = group_rare_classes(df)
 
-    # REPORTES INICIALES
+    df, label_map = group_rare_classes(df)
+
+    # GUARDAR LABEL MAP
 
     os.makedirs("reports", exist_ok=True)
+
+    with open("reports/label_map.json", "w", encoding="utf-8") as f:
+        json.dump(label_map, f, ensure_ascii=False, indent=4)
+
+    # DISTRIBUCIÓN DE CLASES
 
     class_dist = (
         df['GRD_grouped']
@@ -58,15 +62,13 @@ def main():
     X = df[features]
     y = df["GRD_grouped"]
 
-    # VERSION ENCODEADA
-    # PARA SKLEARN
+
+    # ENCODING PARA SKLEARN
 
     X_encoded = X.copy()
 
     for col in X_encoded.columns:
-
         if X_encoded[col].dtype.name in ['object', 'category']:
-
             X_encoded[col] = (
                 X_encoded[col]
                 .astype(str)
@@ -75,19 +77,17 @@ def main():
                 .cat.codes
             )
 
-    # VARIABLES CATEGÓRICAS
-    # CATBOOST
+
+    # CATBOOST CATEGÓRICAS
 
     cat_features = [
         i for i, col in enumerate(X.columns)
         if X[col].dtype.name in ['object', 'category']
     ]
 
-    # SPLIT CATBOOST
+    # SPLIT DATA
 
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)
-
-    # SPLIT SKLEARN
 
     (
         X_train_enc,
@@ -116,11 +116,13 @@ def main():
         cat_model,
         X_test,
         y_test,
-        model_name="catboost"
+        model_name="catboost",
+        label_map=label_map
     )
 
-    # 2. DECISION TREE
 
+    # 2. DECISION TREE
+    
     print("\n========================")
     print("TRAINING DECISION TREE")
     print("========================")
@@ -134,7 +136,8 @@ def main():
         dt_model,
         X_test_enc,
         y_test_enc,
-        model_name="decision_tree"
+        model_name="decision_tree",
+        label_map=label_map
     )
 
     # 3. RANDOM FOREST
@@ -152,7 +155,8 @@ def main():
         rf_model,
         X_test_enc,
         y_test_enc,
-        model_name="random_forest"
+        model_name="random_forest",
+        label_map=label_map
     )
 
     # COMPARACIÓN FINAL
@@ -188,7 +192,10 @@ def main():
     print("MODEL COMPARISON")
     print("========================")
     print(comparison_df)
-    
+
+    # =========================
+    # MEJOR MODELO
+    # =========================
     best_model_name = comparison_df.loc[
         comparison_df["Macro_F1"].idxmax(),
         "Model"
@@ -206,6 +213,9 @@ def main():
 
     elif best_model_name == "RandomForest":
         best_model = rf_model
+
+
+    # GUARDAR MODELO
 
     os.makedirs("models", exist_ok=True)
 

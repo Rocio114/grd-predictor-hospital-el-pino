@@ -17,43 +17,39 @@ def evaluate(
     model,
     X_test,
     y_test,
-    model_name="model"
+    model_name="model",
+    label_map=None
 ):
 
-    # CREAR CARPETA DEL MODELO
+    # CARPETA DE SALIDA
 
     output_dir = f"reports/{model_name}"
-
     os.makedirs(output_dir, exist_ok=True)
 
     # PREDICCIONES
 
     preds = model.predict(X_test)
 
-    preds = pd.Series(
-        preds.reshape(-1)
-    ).astype(str)
-    
-    y_test = y_test.astype(str)
+    preds = pd.Series(preds.reshape(-1)).astype(str)
+    y_test = pd.Series(y_test).astype(str)
 
-    # flatten por si viene shape rara
-    preds = pd.Series(preds).astype(str)
-
-    # MÉTRICAS
+    # MÉTRICAS GLOBALES
 
     acc = accuracy_score(y_test, preds)
 
-    f1 = f1_score(
+    f1_weighted = f1_score(
         y_test,
         preds,
         average='weighted'
     )
-    
+
     f1_macro = f1_score(
         y_test,
         preds,
         average='macro'
     )
+
+    # CLASSIFICATION REPORT
 
     report = classification_report(
         y_test,
@@ -62,14 +58,19 @@ def evaluate(
         output_dict=True
     )
 
-    report_df = (
-        pd.DataFrame(report)
-        .transpose()
-    )
+    report_df = pd.DataFrame(report).transpose()
+
+    # 🔥 HACER LEGIBLE (MAPEO DE CLASES)
+    if label_map is not None:
+        report_df.index = report_df.index.map(
+            lambda x: label_map.get(x, x)
+        )
+
+    # PRINT RESULTADOS
 
     print(f"\nRESULTS - {model_name.upper()}")
     print("Accuracy:", round(acc, 4))
-    print("Weighted F1:", round(f1, 4))
+    print("Weighted F1:", round(f1_weighted, 4))
     print("Macro F1:", round(f1_macro, 4))
 
     # GUARDAR MÉTRICAS
@@ -79,9 +80,8 @@ def evaluate(
         "w",
         encoding="utf-8"
     ) as f:
-
         f.write(f"Accuracy: {acc}\n")
-        f.write(f"Weighted F1: {f1}\n")
+        f.write(f"Weighted F1: {f1_weighted}\n")
         f.write(f"Macro F1: {f1_macro}\n")
 
     report_df.to_csv(
@@ -89,28 +89,34 @@ def evaluate(
         encoding="utf-8-sig"
     )
 
-    # MATRIZ CONFUSIÓN
+    # MATRIZ DE CONFUSIÓN
+
+    preds_labels = preds.copy()
+    y_labels = y_test.copy()
+
+    if label_map is not None:
+        preds_labels = preds.map(label_map).fillna(preds)
+        y_labels = y_test.map(label_map).fillna(y_test)
 
     top_n = 20
 
     most_common = [
         x[0]
-        for x in Counter(y_test).most_common(top_n)
+        for x in Counter(y_labels).most_common(top_n)
     ]
 
     indices = [
-        i
-        for i, y in enumerate(y_test)
+        i for i, y in enumerate(y_labels)
         if y in most_common
     ]
 
     y_true_filtered = [
-        y_test.iloc[i]
+        y_labels.iloc[i]
         for i in indices
     ]
 
     y_pred_filtered = [
-        preds.iloc[i]
+        preds_labels.iloc[i]
         for i in indices
     ]
 
@@ -143,10 +149,7 @@ def evaluate(
         yticklabels=most_common
     )
 
-    plt.title(
-        f"Confusion Matrix - {model_name}"
-    )
-
+    plt.title(f"Confusion Matrix - {model_name}")
     plt.xlabel("Predicted")
     plt.ylabel("Real")
 
@@ -164,15 +167,12 @@ def evaluate(
     # FEATURE IMPORTANCE
 
     if hasattr(model, "get_feature_importance"):
-
         importances = model.get_feature_importance()
 
     elif hasattr(model, "feature_importances_"):
-
         importances = model.feature_importances_
 
     else:
-
         importances = None
 
     if importances is not None:
@@ -201,9 +201,7 @@ def evaluate(
             y="Feature"
         )
 
-        plt.title(
-            f"Top Features - {model_name}"
-        )
+        plt.title(f"Top Features - {model_name}")
 
         plt.tight_layout()
 
@@ -238,9 +236,7 @@ def evaluate(
         y=metrics_only.head(15).index
     )
 
-    plt.title(
-        f"Top F1 Classes - {model_name}"
-    )
+    plt.title(f"Top F1 Classes - {model_name}")
 
     plt.tight_layout()
 
@@ -250,4 +246,7 @@ def evaluate(
 
     plt.close()
 
-    return acc, f1, f1_macro
+
+    # RETURN MÉTRICAS
+
+    return acc, f1_weighted, f1_macro

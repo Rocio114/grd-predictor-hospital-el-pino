@@ -51,7 +51,7 @@ def main():
 
     cat_features = [
         i for i, col in enumerate(X.columns)
-        if X[col].dtype == 'object'
+        if X[col].dtype.name in ['object', 'category']
     ]
 
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)

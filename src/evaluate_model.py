@@ -30,8 +30,8 @@ def evaluate(
 
     preds = model.predict(X_test)
 
-    preds = pd.Series(preds.reshape(-1)).astype(str)
-    y_test = pd.Series(y_test).astype(str)
+    preds = pd.Series(preds).astype(str).reset_index(drop=True)
+    y_test = pd.Series(y_test).astype(str).reset_index(drop=True)
 
     # MÉTRICAS GLOBALES
 

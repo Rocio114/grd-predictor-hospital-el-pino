@@ -89,27 +89,30 @@ def group_rare_classes(df, min_samples=80):
 
     df = df.copy()
 
-    # 1. extraer familia (código antes del guion)
-    df['GRD_family'] = df['GRD'].str.split(' - ').str[0]
+    # 1. separar código y nombre
+    df[['GRD_code', 'GRD_name']] = df['GRD'].str.split(' - ', n=1, expand=True)
 
-    # 2. contar por familia
-    family_counts = df['GRD_family'].value_counts()
+    df['GRD_name'] = df['GRD_name'].fillna(df['GRD_code'])
 
-    # 3. familias raras
-    rare_families = family_counts[
-        family_counts < min_samples
-    ].index
+    # 2. contar por código
+    counts = df['GRD_code'].value_counts()
 
-    # 4. agrupar raras como OTHER (pero a nivel familia)
-    df['GRD_grouped'] = df['GRD_family'].apply(
-        lambda x: x if x not in rare_families else 'OTHER'
+    rare = counts[counts < min_samples].index
+
+    # 3. agrupación
+    df['GRD_grouped'] = df['GRD_code'].apply(
+        lambda x: x if x not in rare else 'OTHER'
     )
 
-    # label map
-    label_map = {
-        str(k): str(k)
-        for k in df['GRD_grouped'].unique()
-    }
+    # 4. construir label_map automático (CLAVE)
+    label_map = df[['GRD_code', 'GRD_name']].drop_duplicates()
+
+    label_map = dict(
+        zip(label_map['GRD_code'], label_map['GRD_name'])
+    )
+
+    # agregar OTHER manualmente
+    label_map['OTHER'] = 'Otros diagnósticos'
 
     return df, label_map
 

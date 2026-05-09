@@ -85,18 +85,24 @@ def filter_ultra_rare_classes(df, min_samples=15):
     return df
 
 
-def group_rare_classes(df, min_samples=40):
+def group_rare_classes(df, min_samples=80):
 
     df = df.copy()
 
-    counts = df['GRD'].value_counts()
+    # 1. extraer familia (código antes del guion)
+    df['GRD_family'] = df['GRD'].str.split(' - ').str[0]
 
-    rare = counts[
-        counts < min_samples
+    # 2. contar por familia
+    family_counts = df['GRD_family'].value_counts()
+
+    # 3. familias raras
+    rare_families = family_counts[
+        family_counts < min_samples
     ].index
 
-    df['GRD_grouped'] = df['GRD'].apply(
-        lambda x: 'OTHER' if x in rare else x
+    # 4. agrupar raras como OTHER (pero a nivel familia)
+    df['GRD_grouped'] = df['GRD_family'].apply(
+        lambda x: x if x not in rare_families else 'OTHER'
     )
 
     return df

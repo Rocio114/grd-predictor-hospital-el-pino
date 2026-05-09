@@ -50,6 +50,7 @@ def train_model(
         learning_rate=0.15,
         loss_function='MultiClass',
         eval_metric='TotalF1',
+        auto_class_weights="Balanced",
         verbose=20,
         random_seed=42,
         early_stopping_rounds=20
@@ -68,7 +69,8 @@ def train_decision_tree(X_train, y_train):
 
     model = DecisionTreeClassifier(
         max_depth=10,
-        random_state=42
+        random_state=42,
+        class_weight="balanced"
     )
 
     model.fit(X_train, y_train)
@@ -81,7 +83,8 @@ def train_random_forest(X_train, y_train):
         n_estimators=100,
         max_depth=10,
         random_state=42,
-        n_jobs=-1
+        n_jobs=-1,
+        class_weight="balanced"
     )
 
     model.fit(X_train, y_train)
